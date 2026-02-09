@@ -12,34 +12,21 @@ const
     googleaddr: string = "google.com"
     httpstringtarget: string = "GET / HTTP/1.1\r\nHost: google.com\r\n\r\n"
 
-# Try binding to port 80 using TCP connection
+# proc using async test
+proc fetchGoogle() {.async.} = # mistake here, used : instead of = for proc
+    let client = newAsyncSocket()
+    try:
+        await client.connect(googleaddr, Port(targetport)) # await only inside async
+        
+        echo "Connection Successful!"
+        await client.send(httpstringtarget)
 
-# Creating socket
+        var outputHTTPS = await client.recvLine()
 
-let # Dont use const as asyncnet cannot be compiled in compile time
-    createSocket = newAsyncSocket() # no need to put asyncnet 
+        echo outputHTTPS
 
-#var
-    # connectPort = NaN # NaN value needs math library, dont put it. 
+        client.close()
+    except ValueError, OSError:
+        echo "Failed to connect"
 
-echo &"Connecting to {googleaddr}:{targetport}"
-
-try:
-    # this will not work whatsoever
-    # connectPort = asyncnet.connect(createSocket, "192.168.1.163", 0) # enum will enumerate lists
-
-    waitFor createSocket.connect(googleaddr, Port(targetport)) #waitFor, this will wait for the connectport to complete
-
-    echo "Connection Successful!"
-
-    waitFor createSocket.send(httpstringtarget)
-
-    var outputHTTPS = waitFor createSocket.recvLine()
-
-    echo outputHTTPS
-
-    createSocket.close() #remember to close socket if done
-except ValueError, OSError:
-    echo "Failed to connect"
-
-
+waitFor fetchGoogle()
