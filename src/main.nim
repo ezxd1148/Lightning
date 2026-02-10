@@ -1,32 +1,36 @@
-# Main file
-
 # Import libraries
 
-import std/[strutils, strformat, asyncnet, asyncdispatch, parseopt]
+import std/[asyncnet, asyncdispatch, strutils, strformat]
 
-# Variables and Consts
+# Variiables and consts
 
 const
-    targetip: string = "192.168.1.163" # assign target ip
-    targetport = 80 # assign port
-    googleaddr: string = "google.com"
-    httpstringtarget: string = "GET / HTTP/1.1\r\nHost: google.com\r\n\r\n"
+    targetip: string = "scanme.nmap.org"
 
-# proc using async test
-proc fetchGoogle() {.async.} = # mistake here, used : instead of = for proc
+# main
+
+proc scanPort(port: int) {.async.} =
+
     let client = newAsyncSocket()
-    try:
-        await client.connect(googleaddr, Port(targetport)) # await only inside async
-        
-        echo "Connection Successful!"
-        await client.send(httpstringtarget)
 
-        var outputHTTPS = await client.recvLine()
-
-        echo outputHTTPS
-
+    # ensure this runs even if exception
+    defer:
         client.close()
-    except ValueError, OSError:
-        echo "Failed to connect"
 
-waitFor fetchGoogle()
+    try:
+        await client.connect(targetip, Port(port))
+
+        echo &"Port {port} is open!" 
+
+    except ValueError, OSError:
+        discard
+
+proc main() {.async.} =
+    var futures: seq[Future[void]] = @[]
+
+    for i in 1 .. 100:
+        futures.add(scanPort(i))
+
+    await futures.all()
+
+waitFor main()
